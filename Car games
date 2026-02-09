@@ -1,0 +1,157 @@
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.Advertisements;
+using System.Collections;
+using System.Collections.Generic;
+
+// 1. PLAYER & VEHICLE CONTROLLER
+[RequireComponent(typeof(Rigidbody))]
+public class PlayerController : MonoBehaviour {
+    [Header("Movement")]
+    public float speed = 10f;
+    public float rotateSpeed = 150f;
+    public float jumpForce = 7f;
+    
+    [Header("Special States")]
+    public bool isFlying = false;
+    public bool robotMode = false;
+    
+    private Rigidbody rb;
+    private bool isGrounded;
+
+    void Start() { rb = GetComponent<Rigidbody>(); }
+
+    void Update() {
+        if (!isFlying) {
+            float move = Input.GetAxis("Vertical") * speed * Time.deltaTime;
+            float rotate = Input.GetAxis("Horizontal") * rotateSpeed * Time.deltaTime;
+            transform.Translate(0, 0, move);
+            transform.Rotate(0, rotate, 0);
+        } else {
+            // Flying Logic
+            Vector3 pos = transform.position;
+            pos.y = Mathf.Lerp(pos.y, 10f, Time.deltaTime);
+            transform.position = pos;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Space) && isGrounded) Jump();
+    }
+
+    public void Jump() {
+        rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+        isGrounded = false;
+    }
+
+    void OnCollisionEnter(Collision col) { if (col.gameObject.CompareTag("Ground")) isGrounded = true; }
+}
+
+// 2. GUN & WEAPON SYSTEM
+public class ShootingSystem : MonoBehaviour {
+    public GameObject bulletPrefab;
+    public Transform firePoint;
+    public float bulletSpeed = 30f;
+
+    void Update() {
+        if (Input.GetButtonDown("Fire1")) Shoot();
+    }
+
+    public void Shoot() {
+        GameObject b = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
+        b.GetComponent<Rigidbody>().velocity = firePoint.forward * bulletSpeed;
+        Destroy(b, 3f);
+    }
+}
+
+// 3. VEHICLE & CHARACTER STORE SYSTEM
+[System.Serializable]
+public class ItemData {
+    public string itemName;
+    public int price;
+    public bool isUnlocked;
+}
+
+public class StoreManager : MonoBehaviour {
+    public ItemData[] items;
+
+    void Start() {
+        for (int i = 0; i < items.Length; i++) {
+            // ऑटो-अनलॉक पहला आइटम, बाकी सेव डेटा से
+            items[i].isUnlocked = PlayerPrefs.GetInt(items[i].itemName, i == 0 ? 1 : 0) == 1;
+        }
+    }
+
+    public void BuyItem(int index) {
+        if (GameManager.instance.totalCoins >= items[index].price && !items[index].isUnlocked) {
+            GameManager.instance.totalCoins -= items[index].price;
+            items[index].isUnlocked = true;
+            PlayerPrefs.SetInt(items[index].itemName, 1);
+            PlayerPrefs.SetInt("Coins", GameManager.instance.totalCoins);
+        }
+    }
+}
+
+// 4. POWER-UPS & SPECIAL ABILITIES
+public class SpecialPowers : MonoBehaviour {
+    public void ActivateShield(GameObject shieldObj, float time) {
+        shieldObj.SetActive(true);
+        StartCoroutine(DisableAfterTime(shieldObj, time));
+    }
+
+    IEnumerator DisableAfterTime(GameObject obj, float t) {
+        yield return new WaitForSeconds(t);
+        obj.SetActive(false);
+    }
+
+    public void TakeSelfie(Camera cam) {
+        cam.enabled = true;
+        ScreenCapture.CaptureScreenshot("GameSelfie.png");
+        Debug.Log("Selfie Saved!");
+        cam.enabled = false;
+    }
+}
+
+// 5. WORLD & DIFFICULTY MANAGEMENT
+public class WorldManager : MonoBehaviour {
+    public GameObject[] roadPrefabs;
+    public Transform spawnPoint;
+    public PlayerController player;
+
+    void Start() {
+        InvokeRepeating("SpawnRoad", 0f, 5f);
+        InvokeRepeating("IncreaseDifficulty", 10f, 15f); // हर 15 सेकंड में मुश्किल
+    }
+
+    void SpawnRoad() {
+        int rand = Random.Range(0, roadPrefabs.Length);
+        GameObject r = Instantiate(roadPrefabs[rand], spawnPoint.position, Quaternion.identity);
+        spawnPoint.position += new Vector3(0, 0, 50);
+        Destroy(r, 20f);
+    }
+
+    void IncreaseDifficulty() {
+        if(player != null) player.speed += 1.5f;
+    }
+}
+
+// 6. GAME MANAGER & SECURITY
+public class GameManager : MonoBehaviour {
+    public static GameManager instance;
+    public int totalCoins;
+
+    void Awake() {
+        instance = this;
+        totalCoins = PlayerPrefs.GetInt("Coins", 0);
+
+        // इंटरनेट चेक (Security for Ads)
+        if (Application.internetReachability == NetworkReachability.NotReachable) {
+            Debug.Log("Internet Required!");
+        }
+    }
+
+    public void AddCoin(int amt) {
+        totalCoins += amt;
+        PlayerPrefs.SetInt("Coins", totalCoins);
+    }
+
+    public void GameOver() { SceneManager.LoadScene(SceneManager.GetActiveScene().name); }
+}
