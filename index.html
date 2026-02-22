@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Game Professional Code</title>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Consolas', 'Monaco', monospace;
+            padding: 20px;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+        h1 { color: #569cd6; border-bottom: 2px solid #3e3e3e; padding-bottom: 10px; }
+        h2 { color: #4ec9b0; margin-top: 40px; }
+        pre {
+            background-color: #252526;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid #3e3e3e;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        code { color: #ce9178; }
+        .keyword { color: #569cd6; }
+        .comment { color: #6a9955; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>My Secure Unity Framework</h1>
+    <p class="comment">// This page contains all my professional game scripts.</p>
+
+    <h2>1. SecureSave System</h2>
+    <pre><code><span class="keyword">using</span> UnityEngine;
+<span class="keyword">using</span> System.Security.Cryptography;
+<span class="keyword">using</span> System.Text;
+
+<span class="keyword">public static class</span> SecureSave {
+    <span class="comment">// Secure encryption for game data</span>
+    <span class="keyword">private static string</span> privateKey = "Vision_2026_Secure_Key"; 
+
+    <span class="keyword">public static void</span> SaveSecureInt(<span class="keyword">string</span> key, <span class="keyword">int</span> value) {
+        <span class="keyword">string</span> data = value.ToString();
+        <span class="keyword">string</span> hash = GenerateHash(data + privateKey);
+        PlayerPrefs.SetString(key, data);
+        PlayerPrefs.SetString(key + "_hash", hash);
+        PlayerPrefs.Save();
+    }
+
+    <span class="keyword">public static int</span> LoadSecureInt(<span class="keyword">string</span> key, <span class="keyword">int</span> defaultValue) {
+        <span class="keyword">if</span> (!PlayerPrefs.HasKey(key)) <span class="keyword">return</span> defaultValue;
+        <span class="keyword">string</span> data = PlayerPrefs.GetString(key);
+        <span class="keyword">string</span> savedHash = PlayerPrefs.GetString(key + "_hash");
+        <span class="keyword">string</span> currentHash = GenerateHash(data + privateKey);
+        <span class="keyword">if</span> (currentHash == savedHash) <span class="keyword">return int</span>.Parse(data);
+        <span class="keyword">return</span> 0; 
+    }
+
+    <span class="keyword">private static string</span> GenerateHash(<span class="keyword">string</span> input) {
+        <span class="keyword">using</span> (SHA256 sha = SHA256.Create()) {
+            <span class="keyword">byte</span>[] bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(input));
+            <span class="keyword">return</span> System.Convert.ToBase64String(bytes);
+        }
+    }
+}</code></pre>
+
+    <h2>2. Network Manager</h2>
+    <pre><code><span class="keyword">public class</span> NetworkManager : MonoBehaviour {
+    <span class="keyword">public</span> GameObject internetErrorPanel;
+
+    <span class="keyword">void</span> Start() {
+        InvokeRepeating("CheckConnection", 1f, 5f);
+    }
+
+    <span class="keyword">void</span> CheckConnection() {
+        <span class="keyword">if</span> (Application.internetReachability == NetworkReachability.NotReachable) {
+            internetErrorPanel.SetActive(<span class="keyword">true</span>);
+            Time.timeScale = 0;
+        } <span class="keyword">else</span> {
+            internetErrorPanel.SetActive(<span class="keyword">false</span>);
+            Time.timeScale = 1;
+        }
+    }
+}</code></pre>
+
+    <h2>3. Object Pooling (Optimization)</h2>
+    <pre><code><span class="keyword">public class</span> BulletPool : MonoBehaviour {
+    <span class="keyword">public static</span> BulletPool instance;
+    <span class="keyword">public</span> GameObject bulletPrefab;
+    <span class="keyword">private</span> List&lt;GameObject&gt; pool = <span class="keyword">new</span> List&lt;GameObject&gt;();
+
+    <span class="keyword">void</span> Awake() { instance = <span class="keyword">this</span>; }
+
+    <span class="keyword">public</span> GameObject GetBullet() {
+        <span class="keyword">foreach</span> (GameObject b <span class="keyword">in</span> pool) {
+            <span class="keyword">if</span> (!b.activeInHierarchy) {
+                b.SetActive(<span class="keyword">true</span>);
+                <span class="keyword">return</span> b;
+            }
+        }
+        GameObject newB = Instantiate(bulletPrefab);
+        pool.Add(newB);
+        <span class="keyword">return</span> newB;
+    }
+}</code></pre>
+
+    <h2>4. Game Manager</h2>
+    <pre><code><span class="keyword">public class</span> GameManager : MonoBehaviour {
+    <span class="keyword">public static</span> GameManager instance;
+    <span class="keyword">public int</span> coins;
+
+    <span class="keyword">void</span> Awake() {
+        <span class="keyword">if</span> (instance == <span class="keyword">null</span>) instance = <span class="keyword">this</span>;
+        <span class="keyword">else</span> Destroy(gameObject);
+        
+        coins = SecureSave.LoadSecureInt("Coins", 0);
+        Application.targetFrameRate = 60;
+    }
+
+    <span class="keyword">public void</span> AddCoin(<span class="keyword">int</span> amount) {
+        coins += amount;
+        SecureSave.SaveSecureInt("Coins", coins);
+    }
+}</code></pre>
+
+    <p style="text-align: center; color: #888; margin-top: 50px;">© 2026 Future Billionaire - Gaming Portfolio</p>
+</div>
+
+</body>
+</html>
